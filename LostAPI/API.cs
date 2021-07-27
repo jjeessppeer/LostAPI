@@ -27,7 +27,7 @@ namespace Lost
 
         static LostAPI()
         {
-            FileLog.Log("Initializing LostAPI");
+            FileLog.Log("Initializing Lost API");
 
             // Intitialize event callback dictionary.
             // Each event type gets a list where callback functions can be added.

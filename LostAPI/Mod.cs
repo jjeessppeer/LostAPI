@@ -20,14 +20,11 @@ namespace Lost
     {
         public const string pluginGuid = "whereami.lostAPI.mod";
         public const string pluginName = "Lost API";
-        public const string pluginVersion = "1.2.3.4";
+        public const string pluginVersion = "0.1";
 
         public void Awake()
         {
-            Logger.LogInfo("hello there\n\n\n\n___");
-            Logger.LogInfo(FileLog.logPath);
-
-            FileLog.Log("__START LOG__");
+            Logger.LogInfo("LostAPI initializing");
             var harmony = new Harmony("testPatch");
             harmony.PatchAll();
         }
