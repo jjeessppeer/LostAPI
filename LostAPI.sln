@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LostAPI", "LostAPI\LostAPI.csproj", "{403C213D-9D3A-41BD-BD1A-AD73FA952679}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{403C213D-9D3A-41BD-BD1A-AD73FA952679}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{403C213D-9D3A-41BD-BD1A-AD73FA952679}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{403C213D-9D3A-41BD-BD1A-AD73FA952679}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{403C213D-9D3A-41BD-BD1A-AD73FA952679}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DEB4B53A-779C-463F-BC76-CFCA5CA6BD57}
+	EndGlobalSection
+EndGlobal
