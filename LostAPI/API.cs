@@ -8,7 +8,8 @@ using System.Threading.Tasks;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
-
+using Muse.Goi2.Entity;
+using Muse.Goi2.Entity.EventSubscribers;
 
 namespace Lost
 {
@@ -18,12 +19,15 @@ namespace Lost
 
         //private static List<Action<Event>> eventCallbacks;
         private static Dictionary<string, List<Action<Event>>> _eventCallbacks;
-        private static readonly string[] _validEvents = { "match_start", "match_end" };
+        private static readonly string[] _validEvents = { 
+            "match_start", "match_end", "match_update",
+            "bullet_fired", "bullet_update", "bullet_hit"};
 
         //private static MatchStatistics _missionStats = null;
 
         private static Mission _activeMission = null;
         private static int _missionType = -1;
+
 
         static LostAPI()
         {
@@ -43,35 +47,64 @@ namespace Lost
         [HarmonyPatch(typeof(Mission), "Start")]
         private static void MissionStarted(Mission __instance)
         {
-            FileLog.Log("Mission started.");
-            if (__instance is Deathmatch)
-            {
-                FileLog.Log("IS DM");
-            }
-            if (__instance is PracticeMission)
-            {
-                FileLog.Log("IS Practice");
-            }
-            if (__instance is Mission)
-            {
-                FileLog.Log("IS MISSION");
-            }
+            //FileLog.Log("Mission started.");
+            //if (__instance is Deathmatch)
+            //{
+            //    FileLog.Log("IS DM");
+            //}
+            //if (__instance is PracticeMission)
+            //{
+            //    FileLog.Log("IS Practice");
+            //}
+            //if (__instance is Mission)
+            //{
+            //    FileLog.Log("IS MISSION");
+            //}
 
             _activeMission = __instance;
-            FileLog.Log($"\tMapId: {_activeMission.mapId}\n\tMapName: {_activeMission.mapName}\n\tObjectives: {_activeMission.mapObjectives}");
-            DispatchEvent(new MatchStartEvent());
+            DispatchEvent(MissionEvent.LoadEventFromMission(_activeMission, "match_start"));
         }
 
         [HarmonyPostfix]
+        [HarmonyPatch(typeof(Mission), "OnRemoteUpdate")]
+        private static void MissionUpdated(Mission __instance)
+        {
+            DispatchEvent(MissionEvent.LoadEventFromMission(_activeMission, "match_update"));
+        }
+
+        [HarmonyPrefix]
         [HarmonyPatch(typeof(Mission), "OnDisable")]
         private static void MissionEnded(Mission __instance)
         {
-            FileLog.Log("Mission ended.");
-            FileLog.Log($"\tEnded: {_activeMission.HadEnded} \n\tScore: {_activeMission.TeamScore(0)} ");
+            DispatchEvent(MissionEvent.LoadEventFromMission(_activeMission, "match_end"));
             _activeMission = null;
-
-            DispatchEvent(new MatchEndEvent());
         }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(BaseShell), "OnLaunch")]
+        private static void BulletFired(BaseShell __instance, ref Turret ___turretLaunchedFrom)
+        {
+
+            FileLog.Log($"SHELL LAUNCHED");
+            NetworkedPlayer shooter = ___turretLaunchedFrom.UsingPlayer;
+            int shooterId = shooter.UserId;
+            int turretId = ___turretLaunchedFrom.ItemId;
+            FileLog.Log($"Shell Laynched\n\tshooter: {shooterId}\n\tturret: {turretId}");
+
+
+
+            //__instance.
+        }
+
+        //// Load a mission event from a mission instance. It needs to be manually specified if match has ended.
+        //private static Event LoadMissionEvent(Mission mission, string eventType)
+        //{
+        //    int teams = mission.numberOfTeams;
+        //    int[] scores = new int[teams];
+        //    bool ended = mission.HadEnded;
+        //    for (int i = 0; i < teams; ++i) scores[i] = mission.TeamScore(i);
+        //    return new MissionEvent(teams, scores, ended, eventType);
+        //}
 
         public static bool MatchRunning()
         {
@@ -90,6 +123,7 @@ namespace Lost
 
         private static void DispatchEvent(Event ev)
         {
+            FileLog.Log($"0Dispatching event: {ev.eventType}");
             if (!(Array.Exists(_validEvents, element => element == ev.eventType)))
             {
                 throw new ArgumentException("Invalid event string");
