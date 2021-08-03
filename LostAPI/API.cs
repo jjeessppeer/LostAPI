@@ -8,8 +8,9 @@ using System.Threading.Tasks;
 using BepInEx;
 using HarmonyLib;
 using UnityEngine;
-using Muse.Goi2.Entity;
-using Muse.Goi2.Entity.EventSubscribers;
+//using Muse;
+using Muse.Networking;
+
 
 namespace Lost
 {
@@ -28,6 +29,8 @@ namespace Lost
         private static Mission _activeMission = null;
         private static int _missionType = -1;
 
+        //private static readonly EventSubscriber<UserAvatarEntity, UserEventOnWeaponFire> eventSubscriberFire;
+
 
         static LostAPI()
         {
@@ -41,6 +44,20 @@ namespace Lost
                 _eventCallbacks.Add(eventStr, new List<Action<Event>>());
             }
             //_activeMission = null;
+
+            //eventSubscriberFire = new EventSubscriber<UserAvatarEntity, UserEventOnWeaponFire>();
+            //eventSubscriberFire.OnEvent = delegate(UserAvatarEntity user, UserEventOnWeaponFire evt)
+            //{
+            //    FileLog.Log($"USER EVENT ON WEAPON FIRE");
+            //    //if (evt.IsInMatch && evt.IsActor(user))
+            //    //{
+            //    //    UserStatsWrapper stats = user.Stats;
+            //    //    int inc = 1;
+            //    //    stats.Add(evt.Match.CreatedGameType, GameStatType.Shots, user.CurrentClass, 0, inc);
+            //    //}
+            //};
+            //EventSubscriber<UserAvatarEntity, UserEventOnWeaponFire> eventSubscriber = new EventSubscriber<UserAvatarEntity, UserEventOnWeaponFire>();
+
         }
 
         [HarmonyPostfix]
@@ -60,50 +77,75 @@ namespace Lost
             //{
             //    FileLog.Log("IS MISSION");
             //}
+            
+
+
+            FileLog.Log($"MISSION STARTED");
 
             _activeMission = __instance;
-            DispatchEvent(MissionEvent.LoadEventFromMission(_activeMission, "match_start"));
+            DispatchEvent(MissionEvent.LoadEventFromMission(__instance, "match_start"));
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(Mission), "OnRemoteUpdate")]
         private static void MissionUpdated(Mission __instance)
         {
-            DispatchEvent(MissionEvent.LoadEventFromMission(_activeMission, "match_update"));
+            FileLog.Log($"MISSION UPDATED");
+            DispatchEvent(MissionEvent.LoadEventFromMission(__instance, "match_update"));
         }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(Mission), "OnDisable")]
         private static void MissionEnded(Mission __instance)
         {
-            DispatchEvent(MissionEvent.LoadEventFromMission(_activeMission, "match_end"));
+            FileLog.Log($"MISSION ENDED");
+            DispatchEvent(MissionEvent.LoadEventFromMission(__instance, "match_end"));
             _activeMission = null;
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(BaseShell), "OnLaunch")]
-        private static void BulletFired(BaseShell __instance, ref Turret ___turretLaunchedFrom)
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Turret), "Fire")]
+        [HarmonyPatch(typeof(Turret), "ContinuousFireTriggered")]
+        private static void BulletFired()
         {
 
-            FileLog.Log($"SHELL LAUNCHED");
-            NetworkedPlayer shooter = ___turretLaunchedFrom.UsingPlayer;
-            int shooterId = shooter.UserId;
-            int turretId = ___turretLaunchedFrom.ItemId;
-            FileLog.Log($"Shell Laynched\n\tshooter: {shooterId}\n\tturret: {turretId}");
+            FileLog.Log($"TURRET FIRED");
+            //NetworkedPlayer shooter = ___turretLaunchedFrom.UsingPlayer;
+            //int shooterId = shooter.UserId;
+            //int turretId = ___turretLaunchedFrom.ItemId;
+            //FileLog.Log($"Shell Laynched\n\tshooter: {shooterId}\n\tturret: {turretId}");
 
-
-
-            //__instance.
         }
 
-        //// Load a mission event from a mission instance. It needs to be manually specified if match has ended.
-        //private static Event LoadMissionEvent(Mission mission, string eventType)
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Turret), "OnWeaponHit")]
+        private static void TurretHit()
+        {
+
+            FileLog.Log($"__HIT__");
+        }
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Turret), "OnCustomEvent")]
+        private static void TurretEvt(int senderId, MuseEvent evt, Turret __instance)
+        {
+            FileLog.Log($"Turret event {evt.Action}\n{evt.ToString()}");
+            if (evt.Action == 1)
+            {
+                HitEvent hitEvt = HitEvent.LoadEvent(evt, __instance);
+                FileLog.Log(hitEvt.ToString());
+            }
+        }
+
+        //[HarmonyPrefix]
+        //[HarmonyPatch(typeof(Turret), "ContinuousFireTriggered")]
+        //private static void BulletDryFired()
         //{
-        //    int teams = mission.numberOfTeams;
-        //    int[] scores = new int[teams];
-        //    bool ended = mission.HadEnded;
-        //    for (int i = 0; i < teams; ++i) scores[i] = mission.TeamScore(i);
-        //    return new MissionEvent(teams, scores, ended, eventType);
+
+        //    FileLog.Log($"TURRET CONT FIRE TRIGGERED");
+
+
         //}
 
         public static bool MatchRunning()
@@ -133,17 +175,6 @@ namespace Lost
             {
                 callback(ev);
             }
-        }
-
-        private static void MatchStarted(Mission mission, int missionType)
-        {
-            _missionType = missionType;
-            _activeMission = mission;
-        }
-        private static void MissionEnded()
-        {
-            _activeMission = null;
-            _missionType = -1;
         }
 
     }
