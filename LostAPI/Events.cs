@@ -11,7 +11,7 @@ using Muse.Networking;
 using HarmonyLib;
 using UnityEngine;
 
-namespace Lost
+namespace LostAPI
 {
     public abstract class Event
     {
@@ -25,6 +25,11 @@ namespace Lost
         {
             this.eventType = eventType;
             EventTime = Time.time - s_timerStart;
+        }
+
+        public virtual string ToString()
+        {
+            return $"Event: {eventType} Time: {EventTime}";
         }
     }
     public class MissionEvent : Event
@@ -47,14 +52,9 @@ namespace Lost
             this.ended = ended;
         }
 
-        public string ToString()
+        public override string ToString()
         {
-            XmlSerializer xmlSerializer = new XmlSerializer(this.GetType());
-            using (StringWriter textWriter = new StringWriter())
-            {
-                xmlSerializer.Serialize(textWriter, this);
-                return textWriter.ToString();
-            }
+            return $"{base.ToString()} \n\tTeams: {teams} \n\tScores: {scores} \n\tEnded: {ended}";
         }
 
         public static MissionEvent LoadEventFromMission(Mission mission, string eventType)
@@ -72,7 +72,28 @@ namespace Lost
     public class TurretFireEvent : Event
     {
         public readonly Turret SoruceTurret;
+        public readonly Ship SourceShip;
+        public readonly NetworkedPlayer Shooter;
 
+        public TurretFireEvent(Turret soruceTurret, Ship sourceShip, NetworkedPlayer shooter, string eventType) : base(eventType)
+        {
+            SoruceTurret = soruceTurret;
+            SourceShip = sourceShip;
+            Shooter = shooter;
+        }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} \n\tTurret: {SoruceTurret.ItemId} Ship: {SourceShip.ShipClass} Player: {Shooter.UserId}";
+        }
+
+        public static TurretFireEvent LoadEvent(Turret turret, string eventType)
+        {
+            Ship ship = turret.Ship;
+            NetworkedPlayer player = turret.UsingPlayer;
+            if (player == null) throw new Exception("Invalid player shooting gun.");
+            return new TurretFireEvent(turret, ship, player, eventType);
+        }
     }
 
 
@@ -86,6 +107,7 @@ namespace Lost
         //public readonly int TargetComponentId;
 
         public readonly Turret SourceTurret;
+        public readonly Ship SourceShip;
         public readonly NetworkedPlayer Shooter;
         public readonly Repairable[] DestroyedComponents;
 
@@ -121,9 +143,10 @@ namespace Lost
         
 
         public HitEvent() { }
-        public HitEvent(Turret sourceTurret, NetworkedPlayer shooter, HitData[] hits)
+        public HitEvent(Turret sourceTurret, NetworkedPlayer shooter, HitData[] hits, string eventType) : base(eventType)
         {
             SourceTurret = sourceTurret;
+            SourceShip = SourceTurret.Ship;
             Shooter = shooter;
             Hits = hits;
 
@@ -138,7 +161,7 @@ namespace Lost
             }
             Distance /= hits.Length;
 
-            // Add the destroyed compoenents to array.
+            // Add the destroyed compoenents to array for easier later access.
             DestroyedComponents = new Repairable[nDestoyedComponents];
             int i = 0;
             foreach (HitData hit in hits)
@@ -147,18 +170,20 @@ namespace Lost
             }
         }
 
-        public string ToString()
+        public override string ToString()
         {
             string hitsString = "";
             foreach (HitData hit in Hits)
             {
                 hitsString += $"\n\t{hit.ToString()}";
             }
-            return $"Shooter: {Shooter.UserId} Hits: {Hits.Length} Damage: {DamageDealt} Breaks: {DestroyedComponents.Length} {hitsString}";
+            return 
+                $"{base.ToString()}" +
+                $"\n\tShooter: {Shooter.UserId} Hits: {Hits.Length} Damage: {DamageDealt} Breaks: {DestroyedComponents.Length} {hitsString}";
         }
 
         // Create and return a new HitEvent based on a valid MuseEvent and Turret.
-        public static HitEvent LoadEvent(MuseEvent evt, Turret sourceTurret)
+        public static HitEvent LoadEvent(MuseEvent evt, Turret sourceTurret, string eventType)
         {
             if (evt.Action != 1) throw new Exception("Invalid muse event for hit");
 
@@ -214,7 +239,7 @@ namespace Lost
 
                 //this.OnWeaponHit(transform, new UnityEngine.Vector3(fixedVector.x, fixedVector.y, fixedVector.z), damage, hitCore, hitWeakness, hitProtection, ownedByLocalUser);
             }
-            return new HitEvent(sourceTurret, shooter, hits);
+            return new HitEvent(sourceTurret, shooter, hits, eventType);
         }
     }
     //public class RepairEvent : Event

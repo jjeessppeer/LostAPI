@@ -13,7 +13,7 @@ using UnityEngine;
 using Muse;
 //using Lost;
 
-namespace Lost
+namespace LostAPI
 {
     [BepInPlugin(pluginGuid, pluginName, pluginVersion)]
     public class LostAPIMod : BaseUnityPlugin
